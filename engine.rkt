@@ -2,7 +2,7 @@
 (module frice-engine racket)
 (provide game run-game title bounds showfps current-game current-entity-list tell reference)
 (require (for-syntax "syntax-helper.rkt"))
-(require (rename-in pict [rectangle *rectangle]))
+(require (rename-in pict [rectangle *rectangle][text *text]))
 (require racket/gui)
 (require "generics.rkt")
 (struct $game (title bounds showfps entitylist))
@@ -77,11 +77,18 @@
                           [border-color "black"]
                           [fill-color "nothing"]
                           )  (lambda (dc)
+                               (if (string=? fill-color "nothing")
                                (draw-pict (*rectangle width
                                                       height
                                                       #:border-width border-width
                                                       #:border-color border-color) dc x y)
-                               )
+                               (draw-pict (filled-rectangle width
+                                                                    height
+                                                                    #:border-width border-width
+                                                                    #:border-color border-color
+                                                                    #:color fill-color)
+                                                    dc x y)
+                               ))
 )
 
 
@@ -89,10 +96,23 @@
                     [border-color "black"]
                     [fill-color "nothing"]
                     ) (lambda (dc)
-                                     (draw-pict (ellipse width
+                                     (if (string=? fill-color "nothing")
+                                         (draw-pict (ellipse width
                                                          height
                                                          #:border-width border-width
-                                                         #:border-color border-color) dc x y)))
+                                                         #:border-color border-color) dc x y)
+                                         (draw-pict (filled-ellipse width
+                                                                    height
+                                                                    #:border-width border-width
+                                                                    #:border-color border-color
+                                                                    #:color fill-color)
+                                                    dc x y)
+                                         )))
+
+(define-shape (text [content ""][color "black"][text-size 13][text-style null])
+  (lambda (dc)
+    (draw-pict (colorize (*text content text-style text-size) color
+                         ) dc x y)))
 
 (define (reference id)
   (if (string=? id "unbound")
@@ -108,6 +128,7 @@
   entitylist : (lambda (dc) (void))
                (lambda (key) (void))
                (lambda (ex ey) (call/cc (lambda (k) (for-each (lambda (e)
+                                             (when (string=? object (e 'get 'id))
                                         (type-case e
                                           (shape
                                            (let ([ox (e 'get 'x)]
@@ -117,7 +138,7 @@
                                            (when (in-rect? ex ey ox oy ow oh) (begin (thunk)
                                                                                    (k (void)))
                                                )))
-                                          (else (void))))
+                                          (else (void)))))
                                           (current-entity-list)
                                                               )))) 
                (lambda () (void)))
