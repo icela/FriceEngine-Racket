@@ -11,6 +11,7 @@ Racket edition of frice engine is a little different from others(JVM/CLR).
 
                 (rectangle #:x 100 #:y 50 #:width 300 #:height 200 #:id "test")
                 (oval #:x 100 #:y 100)
+                (text #:content "hello world!!!")
                 (when-clicking-thunk #:object "test"
                                      #:thunk  (lambda ()
                                      (tell "test" 'set 'x (+ (tell "test" 'get  'x)                                                               
