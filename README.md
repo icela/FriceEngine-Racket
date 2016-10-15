@@ -4,6 +4,7 @@ Racket edition of frice engine is a little different from others(JVM/CLR).
 
 # Demo
 ```
+#lang racket
 (require "engine.rkt")
 (run-game (game (title "my first firceengine program")
                 (bounds 200 200 600 500)
