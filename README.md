@@ -1,6 +1,6 @@
 ﻿# FriceEngine on Lisp
 
-Racket edition of frice engine is a little different from others(JVM/CLR).
+Racket edition of frice engine is a little different from others(JVM/CLR).  
 The latest version is 0.14.
 
 # Demo (-FlappyBird)
@@ -45,23 +45,23 @@ The latest version is 0.14.
 
 # API Reference
 ## Shapes : 
-shared properties : x y width height id class when-colliding object object-class
-velocity-x velocity-y accelerate-x accelerate-y stop?
-rectangle : fill-color
-oval :fill-color
-text :content color text-size text-style
+shared properties : x y width height id class when-colliding object object-class  
+velocity-x velocity-y accelerate-x accelerate-y stop?  
+rectangle : fill-color  
+oval :fill-color  
+text :content color text-size text-style  
 
 ## Events :
-shared properties : object object-class thunk 
-when-left-clicking
-when-right-clicking
-when-mouse-moving
-when-drapping
+shared properties : object object-class thunk  
+when-left-clicking  
+when-right-clicking  
+when-mouse-moving  
+when-drapping  
 
 ## Timers :
-every : interval
-stop?
-thunk
+every : interval  
+stop?  
+thunk  
 
 # Contributors
 
