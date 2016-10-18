@@ -44,7 +44,7 @@ The latest version is 0.14.
 ```
 
 # API Reference
-all objects share two properties : id & class
+all objects share two properties : id & class  
 In a certain game,two different objects can't have duplicate ids.
 ## Shapes : 
 shared properties : x y width height when-colliding object object-class  
