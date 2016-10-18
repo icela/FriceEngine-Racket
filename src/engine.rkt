@@ -1,78 +1,20 @@
 #lang racket
 (module frice-engine racket)
-(provide game run-game title bounds showfps current-game current-entity-list tell reference)
-(require (for-syntax "syntax-helper.rkt"))
+(provide game title bounds showfps tell reference tellc release-all)
+(provide (all-from-out "events.rkt"))
+(require "syntax-helper.rkt")
+(require "data.rkt")
+(require "events.rkt")
+(require racket/stxparam)
 (require (rename-in pict [rectangle *rectangle][text *text]))
 (require racket/gui)
-(require "generics.rkt")
-(struct $game (title bounds showfps entitylist))
-(define current-game (make-parameter '()))
-(define current-entity-list (make-parameter '()))
 
-(define-syntax game
-  (syntax-rules ()
-    [(_ expr ...) (parameterize ([current-game ($game "" '(0 0 0 0) #f '())])
-                             expr ... (current-game))]))
+;;FriceEngine v0.14 : Update Contents
+;;Use define-syntax-parameter
+;;Remove generics.rkt
+;;separate codes into different files
 
-(define-syntax (define-game-updater stx)
-  (syntax-case stx (bounds showfps entitylist : title)
-    [(_ (name parameters ...) bounds : expr)
-     #'(define (name parameters ...)
-       (current-game ($game ($game-title (current-game)) 
-                                  expr
-                                 ($game-showfps (current-game))
-                                 ($game-entitylist (current-game)))))]
-    [(_ (name parameters ...) showfps : expr)
-     #'(define (name parameters ...)
-       (current-game ($game ($game-title (current-game))
-                                 ($game-bounds (current-game))
-                                 expr
-                                 ($game-entitylist (current-game)))))
-     ]
-    [(_ (name parameters ...) title : expr)
-     #'(define (name parameters ...)
-       (current-game ($game  expr 
-                                 ($game-bounds (current-game))
-                                 ($game-showfps (current-game))
-                                 ($game-entitylist (current-game)))))]
-    [(_ (name [parameter default-val] ...) entitylist : when-paint when-key when-mouse when-tick)
-     #`(begin (define (name #,@(keyword-trans #'((parameter default-val) ...)))
-         (current-game ($game ($game-title (current-game))
-                                   ($game-bounds (current-game))
-                                   ($game-showfps (current-game))
-                                     (cons (lambda args
-                                               (match args
-                                                  [`(get-type) 'name]
-                                                  [`(set parameter ,val) (set! parameter val)] ...
-                                                  [`(get parameter) parameter] ...
-                                                  [`(get-paint) when-paint]
-                                                  [`(get-mouse) when-mouse]
-                                                  [`(get-key) when-key]
-                                                  [`(get-tick) when-tick]
-                                                  [else (error "Invalid Method" args)]))
-                                           ($game-entitylist (current-game))))
-                                 ))
-              (provide name))
-              ]))
 
-(define-syntax (define-shape stx)
-  (syntax-case stx ()
-    [(_ (name para ...) when-paint)
-       #`(begin (define-class shape 'name)
-              (define-game-updater (name [#,(datum->syntax stx 'x) 0]
-                                         [#,(datum->syntax stx 'y) 0]
-                                         [#,(datum->syntax stx 'width) 100]
-                                         [#,(datum->syntax stx 'height) 100]
-                                         [#,(datum->syntax stx 'id) "unbounded"]
-                                         para ...) entitylist :
-                when-paint
-                (lambda (key) (void))
-                (lambda (x y) (void))
-                void))]))
-
-(define-game-updater (bounds x y width height) bounds : `(,x ,y ,width ,height))
-(define-game-updater (showfps b) showfps : b)
-(define-game-updater (title b) title : b)
 (define-shape  (rectangle [border-width 1]
                           [border-color "black"]
                           [fill-color "nothing"]
@@ -111,66 +53,59 @@
 
 (define-shape (text [content ""][color "black"][text-size 13][text-style null])
   (lambda (dc)
-    (draw-pict (colorize (*text content text-style text-size) color
-                         ) dc x y)))
+    (let ([p (*text content text-style text-size)])
+     (set! width (pict-width p))
+     (set! height (pict-height p))
+    (draw-pict (colorize p color
+                         ) dc x y))))
 
-(define (reference id)
-  (if (string=? id "unbound")
-      (error "can't reference an unbound object.")
-      (memf (lambda (x) (string=? id (x 'get 'id))) (current-entity-list))))
 
-(define (tell id . msg)
-  (apply (car (reference id)) msg))
 
-(define-game-updater (when-clicking-thunk [id "unbound"]
-                                          [object "unbound"]
-                                          [thunk void])
-  entitylist : (lambda (dc) (void))
-               (lambda (key) (void))
-               (lambda (ex ey) (call/cc (lambda (k) (for-each (lambda (e)
-                                             (when (string=? object (e 'get 'id))
-                                        (type-case e
-                                          (shape
-                                           (let ([ox (e 'get 'x)]
-                                               [oy (e 'get 'y)]
-                                               [ow (e 'get 'width)]
-                                               [oh (e 'get 'height)])
-                                           (when (in-rect? ex ey ox oy ow oh) (begin (thunk)
-                                                                                   (k (void)))
-                                               )))
-                                          (else (void)))))
-                                          (current-entity-list)
-                                                              )))) 
-               (lambda () (void)))
+                    
 
-(define in-rect?
-  (lambda (ex ey ox oy ow oh)
-    (and (<= ox ex (+ ox ow))
-         (<= oy ey (+ oy oh)))))
-
-                     
-
-(define (run-game g)
-  (define elist ($game-entitylist g))
-  (define mainframe
-   (match g
-     [($game title `(,x ,y ,w ,h) showfps entitylist)
-    (new frame% [label title][width w][height h][x x][y y])
-    ]))
-  (define my-canvas% 
+(define-syntax (game stx)
+  (syntax-case stx ()
+    [(_ exprs ...)
+     #'(begin
+         (define my-canvas% 
     (class canvas% 
       (define/override (on-event event)
-        (if (send event button-down? 'left)
         (let ([ax (send event get-x)]
               [ay (send event get-y)])
           (for-each (lambda (x)
-                    ((x 'get-mouse) ax ay))
-                      (current-entity-list)))
-        (void)))
+            (when (send event button-down? 'left) ((x 'get-left-click) ax ay))
+            (when (send event button-down? 'right) ((x 'get-right-down) ax ay))
+            (when (send event moving?) ((x 'get-moving) ax ay))
+            (when (send event dragging?) ((x 'get-dragging) ax ay (- ax cx) (- ay cy)))
+            (when (send event button-up?) ((x 'get-release) ax ay))
+                      )
+                      (current-entity-list))
+          (set! cx ax)
+          (set! cy ay)
+          )
+        (void))
     (define/override (on-char event) 
       (void)) 
     (super-new)))
+      (define cel (box '()))
+      ($current-entity-list cel)
+     (define mainframe
+    (new frame% [label "No Title"][width 0][height 0][x 100][y 100]))
+  (define cx 0)
+  (define cy 0)
   (define maincanvas (new my-canvas% [parent mainframe]))
+  (define maintimer (new timer% [notify-callback
+                                 (lambda ()
+                                   (let [(w  (send mainframe get-width))
+                                        (h  (send mainframe get-height))]
+                                   (filter (lambda (x)
+                                               ((x 'get-tick))
+                                               (if (memq (x 'get-type) (shapes))
+                                                   (and (<= 0 (x 'get 'x) w)
+                                                        (<= 0 (x 'get 'y) h))
+                                                   #t))
+                                                (current-entity-list))))]
+                         [interval 20]))
   (define driver-loop (lambda ()
                                 (send maincanvas refresh-now
                                 (lambda (dc)
@@ -179,9 +114,13 @@
                                 )(driver-loop)
                         ))
   (send mainframe show #t)
-  (current-entity-list elist)
+  (syntax-parameterize ([title (syntax-rules ()
+                                 [(_ n) (send mainframe set-label n)])]
+                        [bounds (syntax-rules ()
+                                 [(_ w h) (send mainframe resize w h)])])
+                                  (begin exprs ...))
   (thread driver-loop)
-  )
+  )]))
 
 
 
