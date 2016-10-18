@@ -63,6 +63,13 @@ every : interval
 stop?  
 thunk  
 
+## Object Managers :
+tell `object-id` msg  
+tellc `object-class` msg  
+```
+(tell "bird" 'set 'x 66)
+```
+
 # Contributors
 
 + [Syntacticlosure](https://github.com/Syntacticlosuredffddfs
