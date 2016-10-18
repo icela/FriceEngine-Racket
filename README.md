@@ -44,8 +44,10 @@ The latest version is 0.14.
 ```
 
 # API Reference
+all objects share two properties : id & class
+In a certain game,two different objects can't have duplicate ids.
 ## Shapes : 
-shared properties : x y width height id class when-colliding object object-class  
+shared properties : x y width height when-colliding object object-class  
 velocity-x velocity-y accelerate-x accelerate-y stop?  
 rectangle : fill-color  
 oval :fill-color  
