@@ -5,7 +5,7 @@ The latest version is 0.14.
 
 # Demo (-FlappyBird)
 
-```
+```racket
 #lang racket
 (require "engine.rkt")
 ;;flappy bird
