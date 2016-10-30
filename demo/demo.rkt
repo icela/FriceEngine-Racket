@@ -1,5 +1,5 @@
 #lang racket
-(require "engine.rkt")
+(require "../src/engine.rkt")
 ;;flappy bird
 
 (game (bounds 600 480)
